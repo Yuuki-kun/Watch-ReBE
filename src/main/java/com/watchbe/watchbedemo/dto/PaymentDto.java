@@ -18,4 +18,18 @@ public class PaymentDto {
     private Date date;
     private String type;
     private String paymentMethod;
+
+    private String brand;
+    private String cvcCheck;
+    private String country;
+    private String last4;
+    private String network;
+    private String paymentMethodType;
+    private String receiptEmail;
+    private Long expMonth;
+    private Long expYear;
+    private String fingerprint;
+    private String funding;
+    private Date captureBefore;
+    private String capturedAt;
 }

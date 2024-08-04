@@ -14,7 +14,6 @@ import java.util.List;
 public class CreateCheckoutRequest {
     //list of products to check out
     private long customerId;
-
     private List<Long> orderDetailsId;
 
 }

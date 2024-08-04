@@ -16,8 +16,8 @@ public class DialDto {
     private String hands;
     private String type;
 
-    private String subDials;
+//    private String subDials;
     private String luminescence;
-    private String gemSetting;
+//    private String gemSetting;
     private String img;
 }

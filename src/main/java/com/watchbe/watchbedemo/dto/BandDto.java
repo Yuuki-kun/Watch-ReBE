@@ -20,7 +20,8 @@ public class BandDto {
     private String color;
     //loai chot khoa
     private String clasp;
-    private String reference;
+//    private String reference;
     private float width;
+    private float length;
     private List<BraceletSizeDto> braceletSizes;
 }

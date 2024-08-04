@@ -6,10 +6,9 @@ import com.watchbe.watchbedemo.exception.NotFoundException;
 import com.watchbe.watchbedemo.mapper.OrderDetailsMapperImpl;
 import com.watchbe.watchbedemo.model.Cart;
 import com.watchbe.watchbedemo.model.OrderDetails;
+import com.watchbe.watchbedemo.model.Promotion_Details;
 import com.watchbe.watchbedemo.model.Watch;
-import com.watchbe.watchbedemo.repository.CartRepository;
-import com.watchbe.watchbedemo.repository.CustomerRepository;
-import com.watchbe.watchbedemo.repository.OrderDetailsRepository;
+import com.watchbe.watchbedemo.repository.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +27,8 @@ public class CartController {
     private final CartRepository cartRepository;
     private final OrderDetailsRepository orderDetailsRepository;
     private final OrderDetailsMapperImpl orderDetailsMapper;
+    private final ProductPromotionRepository promotionRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -37,6 +38,27 @@ public class CartController {
                 cartRepository.findById(cartId).orElseThrow().getOrderDetails().stream().map(
                         orderDetailsMapper::mapTo
                 ).collect(Collectors.toList());
+
+        for (OrderDetailsDto o:
+             orderDetailsDto) {
+
+            List<Promotion_Details> promotionDetails =
+                    promotionRepository
+                            .findPromotionDiscountPercentageByProductIdAndOrderDate(o.getWatch().getId(),new java.util.Date());
+            float promotion = 0f;
+            for(Promotion_Details p: promotionDetails){
+                if(p.getPromotion().getPriority()==1){
+                    promotion += p.getValue();
+                }
+            }
+            if(promotionDetails!=null){
+                o.getWatch().setDiscount(promotion);
+            }
+            else{
+                o.getWatch().setDiscount(0f);
+            }
+        }
+
         return ResponseEntity.ok(orderDetailsDto);
     }
 
@@ -65,8 +87,20 @@ public class CartController {
             }
         }
 
+        float discount = 0f;
+
+        List<Promotion_Details> promotionDetails =
+                promotionRepository
+                        .findPromotionDiscountPercentageByProductIdAndOrderDate(cartItem.getWatchId(),new java.util.Date());
+        float promotion = 0f;
+        for(Promotion_Details p: promotionDetails){
+            if(p.getPromotion().getPriority()==1){
+                promotion += p.getValue();
+            }
+        }
+
         OrderDetails orderDetail = OrderDetails.builder()
-                .price(cartItem.getPrice())
+                .price(cartItem.getPrice()*(1-promotion/100)*cartItem.getQuantity())
                 .quantity(cartItem.getQuantity())
                 .watch(watch)
                 .build();
@@ -83,7 +117,7 @@ public class CartController {
     }
 
     /**
-     *
+     * http..//delete-items?cart=1&item=1
      * @param
      *
      * @return

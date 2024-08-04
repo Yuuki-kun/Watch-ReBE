@@ -1,17 +1,16 @@
 package com.watchbe.watchbedemo.controller;
 
+import com.watchbe.watchbedemo.model.ShippingRate;
 import com.watchbe.watchbedemo.model.provinces.District;
 import com.watchbe.watchbedemo.model.provinces.Province;
 import com.watchbe.watchbedemo.model.provinces.Ward;
 import com.watchbe.watchbedemo.repository.DistrictRepository;
 import com.watchbe.watchbedemo.repository.ProvinceRepository;
+import com.watchbe.watchbedemo.repository.ShippingRepository;
 import com.watchbe.watchbedemo.repository.WardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,6 +21,21 @@ public class LocationController {
     private final ProvinceRepository provinceRepository;
     private final DistrictRepository districtRepository;
     private final WardRepository wardRepository;
+    private final ShippingRepository shippingRateRepository;
+
+    @PostMapping("/shipping-rates")
+    public ResponseEntity<ShippingRate> createShippingRate(@RequestBody ShippingRate shippingRate){
+        return ResponseEntity.ok(shippingRateRepository.save(shippingRate));
+    }
+    @DeleteMapping("/shipping-rates/{id}")
+    public ResponseEntity<Void> deleteShippingRate(@PathVariable Long id){
+        shippingRateRepository.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+    @GetMapping("/shipping-rates")
+    public ResponseEntity<List<ShippingRate>> getShippingRates(){
+        return ResponseEntity.ok(shippingRateRepository.findAll());
+    }
     @GetMapping("/provinces")
     public ResponseEntity<List<Province>> getProvinces() {
         List <Province> provinces = provinceRepository.findAll();

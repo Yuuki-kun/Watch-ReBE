@@ -4,12 +4,18 @@ import com.watchbe.watchbedemo.auth.AuthenticationService;
 import com.watchbe.watchbedemo.auth.RegisterRequest;
 import com.watchbe.watchbedemo.model.account.Role;
 import com.watchbe.watchbedemo.model.*;
+import com.watchbe.watchbedemo.model.provinces.Province;
 import com.watchbe.watchbedemo.repository.*;
+import com.watchbe.watchbedemo.service.EmailService;
+import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
@@ -21,22 +27,334 @@ import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @SpringBootApplication
+@RequiredArgsConstructor
 public class DemoWatchApplication {
+    private final EmailService emailService;
+    private final AuthenticationService authenticationService;
+    private final ProvinceRepository provinceRepository;
+    private final ShippingAddressRepository shippingAddressRepository;
+    //start stripe listen event
+    //stripe listen --forward-to localhost:8080/api/v1/webhook/stripe
 
     public static void main(String[] args) {
-//        SpringApplication.run(DemoWatchApplication.class, args);
-        ApplicationContext context = SpringApplication.run(DemoWatchApplication.class, args);
+        SpringApplication.run(DemoWatchApplication.class, args);
+//        ApplicationContext context = SpringApplication.run(DemoWatchApplication.class, args);
 //
 //        DataSource dataSource = context.getBean(DataSource.class);
 //        executeSqlScript(dataSource, "script/ImportData_vn_units.sql");
 
     }
+//    public static Date generateRandomDate() {
+//        // Tạo ngày bắt đầu (20/4)
+//        Calendar startCal = Calendar.getInstance();
+//        startCal.set(Calendar.MONTH, Calendar.APRIL);
+//        startCal.set(Calendar.DAY_OF_MONTH, 20);
+//
+//        // Tạo ngày kết thúc (9/5)
+//        Calendar endCal = Calendar.getInstance();
+//        endCal.set(Calendar.MONTH, Calendar.MAY);
+//        endCal.set(Calendar.DAY_OF_MONTH, 9);
+//
+//        // Chuyển đổi sang milliseconds
+//        long startMillis = startCal.getTimeInMillis();
+//        long endMillis = endCal.getTimeInMillis();
+//
+//        // Tạo ngày ngẫu nhiên trong khoảng thời gian
+//        long randomMillisSinceEpoch = ThreadLocalRandom
+//                .current()
+//                .nextLong(startMillis, endMillis);
+//
+//        // Chuyển đổi ngày ngẫu nhiên thành kiểu Date
+//        return new Date(randomMillisSinceEpoch);
+//    }
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void init(){
+//        List<Order> orders = new ArrayList<>();
+//        orders = orderRepository.findAll();
+//        for(Order o : orders){
+//            o.setOrderDate(generateRandomDate());
+//            orderRepository.save(o);
+//        }
+//    }
+
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void init() throws  Exception{
+//        //random shipping address
+////        for(int j = 0; j<491; j++){
+////            Random rand = new Random();
+////            String phoneNumber = "+84";
+////            for (int i = 0; i < 9; i++) {
+////                phoneNumber += rand.nextInt(10);
+////            }
+////
+////            //random city
+////            List<Province> provinces = new ArrayList<>();
+////            provinces = provinceRepository.findAll();
+////            Random randCity = new Random();
+////            Province city = provinces.get(randCity.nextInt(provinces.size()));
+////            ShippingAddress shippingAddress = ShippingAddress.builder()
+////                    .city(city.getName()).build();
+////            shippingAddressRepository.save(shippingAddress);
+////
+////        }
+//        //set shipping address for order
+//        List<Order> orders = new ArrayList<>();
+//        orders = orderRepository.findAll();
+//        List<ShippingAddress> shippingAddresses = new ArrayList<>();
+//        shippingAddresses = shippingAddressRepository.findAll();
+//        List<ShippingAddress> finalShippingAddresses = shippingAddresses;
+//        orders.forEach(
+//                order -> {
+//                    if(order.getAddress() != null){
+//                        return;
+//                    }
+//                    Random rand = new Random();
+//                    ShippingAddress shippingAddress = finalShippingAddresses.get(rand.nextInt(finalShippingAddresses.size()));
+//                    while (shippingAddress.getCustomer()!=null){
+//                        shippingAddress = finalShippingAddresses.get(rand.nextInt(finalShippingAddresses.size()));
+//                    }
+//                    order.setAddress(shippingAddress);
+//                    orderRepository.save(order);
+//                }
+//        );
+//
+//    }
+//    public void init() throws Exception {
+//        emailService.sendEmail("tongcongminh2021@gmail.com",
+//                "[TIMEFLOW] Your order has been refused",
+//                sendRefuseEmail("Hết hàng", 12313L));
+//    }
+    public String sendRefuseEmail( String reason, Long orderId) {
+        return
+                "<!DOCTYPE html>" +
+                        "<html lang='en'>" +
+                        "<head>" +
+                        "    <meta charset='UTF-8'>" +
+                        "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                        "    <title>Your Order Refused</title>" +
+                        "    <style>" +
+                        "        body {" +
+                        "            font-family: 'Arial', sans-serif;" +
+                        "            margin: 0;" +
+                        "            padding: 0;" +
+                        "            background-color: #f4f4f4;" +
+                        "        }" +
+                        "        .container {" +
+                        "            max-width: 600px;" +
+                        "            margin: 20px auto;" +
+                        "            padding: 20px;" +
+                        "            background-color: #f6f6f6;" +
+                        "            border-radius: 10px;" +
+                        "            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);" +
+                        "        }" +
+                        "        h1 {" +
+                        "            color: #333333;" +
+                        "            margin-bottom: 20px;" +
+                        "        }" +
+                        "        p {" +
+                        "            color: #666666;" +
+                        "            margin-bottom: 10px;" +
+                        "        }" +
+                        "        .reason {" +
+                        "            color: #ff0000;" +
+                        "            font-weight: bold;" +
+                        "        }" +
+                        "        .apology {" +
+                        "            color: #333333;" +
+                        "            font-style: italic;" +
+                        "            margin-top: 20px;" +
+                        "        }" +
+                        "        .footer {" +
+                        "            margin-top: 20px;" +
+                        "            font-size: 12px;" +
+                        "            color: #999999;" +
+                        "        }" +
+                        "    </style>" +
+                        "</head>" +
+                        "<body>" +
+                        "    <div class='container'>" +
+                        "        <h1 style='text-align: center;'>[TIMEFLOW] Your order has been refused</h1>" +
+                        "        <p class='apology'>We apologize for any inconvenience caused.</p>" +
+                        "        <p>Your order has been refused for the following reason:</p>" +
+                        "        <p class='reason'>" + reason + "</p>" +
+                        "        <p>Order ID: " + orderId + "</p>" +
+                        "        <p>Please contact us for further information.</p>" +
+                        "        <p class='footer'>This email was sent from [TIMEFLOW]. Please do not reply to this " +
+                        "email.</p>" +
+                        "    </div>" +
+                        "</body>" +
+                        "</html>";
+    }
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void init() throws Exception {
+//            var admin = RegisterRequest.builder()
+//
+//                    .firstName("admin")
+//                    .lastName("admin")
+//                    .email("admin@admin.com")
+//                    .password("password")
+//                    .gender("NONE")
+//                    .phoneNumber("123456")
+//                    .role(Role.ADMIN).build();
+//            System.out.println("Admin token: " + authenticationService.register(admin).getAccess_token());
+//    }
+private static final String[] FIRST_NAMES = {"John", "Emma", "Michael", "Sophia", "Daniel", "Olivia", "James", "Ava", "William", "Isabella", "Kuki"};
+    private static final String[] LAST_NAMES = {"Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Kakiji", "Ijika"};
+    private static final String[] EMAIL_DOMAINS = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com"};
+    private static final String[] GENDERS = {"Male", "Female"};
+    private static String randomString(String[] array) {
+        Random rand = new Random();
+        return array[rand.nextInt(array.length)];
+    }
+    private static String randomPhoneNumber() {
+        Random rand = new Random();
+        StringBuilder phoneNumber = new StringBuilder("+");
+        for (int i = 0; i < 10; i++) {
+            phoneNumber.append(rand.nextInt(10));
+        }
+        return phoneNumber.toString();
+    }
+    private final WatchRepository watchRepository;
+    private final OrderRepository orderRepository;
+    private final OrderDetailsRepository orderDetailsRepository;
+    private final ReviewRepository reviewRepository;
+    private final CustomerRepository customerRepository;
+//    public static int generateWeightedRandom(Random random) {
+//        int randomNumber = random.nextInt(100) + 1;
+//        if (randomNumber <= 10) { // 10% chance
+//            return 1;
+//        } else if (randomNumber <= 20) { // 20% chance
+//            return 2;
+//        } else if (randomNumber <= 30) { // 20% chance
+//            return 3;
+//        } else if (randomNumber <= 60) { // 30% chance
+//            return 4;
+//        } else { // 40% chance
+//            return 5;
+//        }
+//    }
+        public static int generateWeightedRandom(Random random) {
+            int randomNumber = random.nextInt(100) + 1;
+            if (randomNumber <= 5) { // 10% chance
+                return 1;
+            } else if (randomNumber <= 10) { // 20% chance
+                return 2;
+            } else if (randomNumber <= 40) { // 20% chance
+                return 3;
+            } else if (randomNumber <= 80) { // 30% chance
+                return 4;
+            } else { // 20% chance
+                return 5;
+            }
+        }
+
+//    public static int generateWeightedRandom(Random random) {
+//        int randomNumber = random.nextInt(100) + 1;
+//        if (randomNumber <= 40) { // 40% chance
+//            return 1;
+//        } else if (randomNumber <= 70) { // 30% chance
+//            return 2;
+//        } else if (randomNumber <= 80) { // 10% chance
+//            return 3;
+//        } else if (randomNumber <= 90) { // 10% chance
+//            return 4;
+//        } else { // 10% chance
+//            return 5;
+//        }
+//    }
+
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void initUser() throws Exception {
+//        //all users will have the same password: password: "1"
+////        for(int i=0; i<42; i++){
+////            String firstName = randomString(FIRST_NAMES);
+////            String lastName = randomString(LAST_NAMES);
+////            String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + "@" + randomString(EMAIL_DOMAINS);
+////            String password = "1"; // Bạn có thể tạo một mật khẩu ngẫu nhiên ở đây nếu cần
+////            String gender = randomString(GENDERS);
+////            String phoneNumber = randomPhoneNumber();
+////            var user = RegisterRequest.builder()
+////                    .firstName(firstName)
+////                    .lastName(lastName)
+////                    .email(email)
+////                    .password(password)
+////                    .gender(gender)
+////                    .phoneNumber(phoneNumber)
+////                    .role(Role.USER)
+////                    .build();
+////            authenticationService.register("none",null,user,null);
+////        }
+//
+//        Map<Long, Integer> map = new HashMap<>();
+//        map.put(1L,0);
+//        map.put(2L,0);
+//        map.put(3L,0);
+//        map.put(4L,0);
+//        map.put(5L,0);
+//        for(int j = 0; j<340; j++){
+//            Random randb = new Random();
+//            Customer customer = customerRepository.findById((long)j).orElseThrow();
+//            int randbought = randb.nextInt(10);
+//            int oldrandw = -1;
+//            for(int k=0; k<randbought; k++){
+//                Random rand = new Random();
+//
+//                //random rating
+//                int randwatch = rand.nextInt(61);
+//                if(randwatch == oldrandw){
+//                    randwatch = rand.nextInt(61);
+//                    if(randwatch == oldrandw){
+//                        if(randwatch == 60){
+//                            randwatch = 0;
+//                        }
+//                        randwatch +=1;
+//
+//                    }
+//                }
+//                oldrandw = randwatch;
+//                Watch w = watchRepository.findById((long)randwatch).get();
+//                System.out.println("watch="+w.getDefaultPrices());
+//                Order order =
+//                        Order.builder().orderDate(new Date()).orderStatus(OrderStatus.builder().id(6L).build()).amount(0).tax(0).shipping(0f).customer(customer).build();
+//                orderRepository.save(order);
+//                OrderDetails orderDetails = OrderDetails.builder().watch(w).price(w.getDefaultPrices()).quantity(1).order(order).build();
+//                orderDetailsRepository.save(orderDetails);
+//
+//
+//                Random randrv = new Random();
+//                int randomValue = generateWeightedRandom(randrv);
+//                String comment = "";
+//                if(randomValue == 1){
+//                    comment = "this watch is very bad";
+//                }
+//                if(randomValue == 2){
+//                    comment = "this watch is bad";
+//                }
+//                if(randomValue == 3){
+//                    comment = "this watch is ok";
+//                }
+//                if(randomValue == 4){
+//                    comment = "this watch is good";
+//                }
+//                if(randomValue == 5){
+//                    comment = "this watch is very good";
+//                }
+//                Review r =
+//                        Review.builder().comment(comment).ratingStars(randomValue).loves(0).watch(w).customer(customer).datePosted(new Date()).build();
+//
+//                reviewRepository.save(r);
+//                map.put((long)randomValue, map.getOrDefault((long)randomValue, 0) + 1);
+//            }
+//        }
+//        for(Map.Entry<Long, Integer> entry : map.entrySet()) {
+//            System.out.println("key=" + entry.getKey() + " value=" + entry.getValue());
+//        }
+//
+//    }
     private static void executeSqlScript(DataSource dataSource, String scriptPath) {
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource(scriptPath));
@@ -377,50 +695,50 @@ public class DemoWatchApplication {
 //            w2.setImages(images1);
 //            w2.setDials(dials1);
 //            watchRepository.save(w2);
-//
-//
-//            //paypal note:
-//            //Tạo url để lấy access token sau đó gắn access token vào header để gửi request
-//            //intent = authorize : tạo order và authorize (ủy quyền đặt cọc (chưa lấy tiền trong tk khách hàng)
-//            //intent = capture : tạo order và capture (lấy tiền trong tk khách hàng)
-//            //nếu dùng authorize thì phải gửi request authorize để lấy tiền
-//            //nếu dùng capture thì sau đó phải capture để lấy tiền
-//            //PayPal-Request-Id: có thể tự sinh 1 cái id
-//            //response sẽ trả data lại trong đó có cái link để redirect qua trang thanh toán của paypal
-//            //sau khi thanh toán xong thì paypal sẽ redirect lại trang return_url hoặc cancel_url
-//            //sau khi thanh toán trạng thái order trở thành approved
-//            //nếu không thanh toán thì trạng thái order trở thành voided?
-//            //nếu thanh toán mà không đủ tiền thì trạng thái order trở thành failed
-//            //Sử dụng id của order để lấy thông tin chi tiết của order và thực hiện capture, authorize
-//            //Có thể sử dụng capture id để thực hiện refund
-//
-//
-//            /*
-//            URL url = new URL("https://api-m.sandbox.paypal.com/v2/checkout/orders");
-//            HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
-//            httpConn.setRequestMethod("POST");
-//
-//            httpConn.setRequestProperty("Content-Type", "application/json");
-//            httpConn.setRequestProperty("PayPal-Request-Id", "7b92603e-77ed-4896-8e78-5dsea2050476ab");
-//            httpConn.setRequestProperty("Authorization", "Bearer A21AAJW3Xm9mxGB1gM5Vcw0U2b3LyQV9UfcMNWjLiZw6OQWADup9OBG3aNAFXdtXDrWxLeRbZgvzAejNCFZEn_OK4knQmdZaw");
-//
-//            httpConn.setDoOutput(true);
-//            OutputStreamWriter writer = new OutputStreamWriter(httpConn.getOutputStream());
-//            writer.write("{ \"intent\": \"AUTHORIZE\", \"purchase_units\": [ { \"reference_id\": " +
-//                    "\"d9f80740-38f0-11e8-b467-0ed5f89f718b\", \"amount\": { \"currency_code\": \"USD\", \"value\": \"1000.00\" }, \"shipping\": { \"address\": { \"address_line_1\": \"123 Main Street\", \"address_line_2\": \"Apt 101\", \"admin_area_1\": \"CA\", \"admin_area_2\": \"San Jose\", \"postal_code\": \"95131\", \"country_code\": \"US\" } } } ], \"payment_source\": { \"paypal\": { \"experience_context\": { \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\", \"brand_name\": \"EXAMPLE INC\", \"locale\": \"en-US\", \"landing_page\": \"LOGIN\", \"shipping_preference\": \"SET_PROVIDED_ADDRESS\", \"user_action\": \"PAY_NOW\", \"return_url\": \"https://example.com/returnUrl\", \"cancel_url\": \"https://example.com/cancelUrl\" } } } }");
-//            writer.flush();
-//            writer.close();
-//            httpConn.getOutputStream().close();
-//
-//            InputStream responseStream = httpConn.getResponseCode() / 100 == 2
-//                    ? httpConn.getInputStream()
-//                    : httpConn.getErrorStream();
-//            Scanner s = new Scanner(responseStream).useDelimiter("\\A");
-//            String response = s.hasNext() ? s.next() : "";
-//
-//            System.out.println(response);
-//
-//             */
+////
+////
+////            //paypal note:
+////            //Tạo url để lấy access token sau đó gắn access token vào header để gửi request
+////            //intent = authorize : tạo order và authorize (ủy quyền đặt cọc (chưa lấy tiền trong tk khách hàng)
+////            //intent = capture : tạo order và capture (lấy tiền trong tk khách hàng)
+////            //nếu dùng authorize thì phải gửi request authorize để lấy tiền
+////            //nếu dùng capture thì sau đó phải capture để lấy tiền
+////            //PayPal-Request-Id: có thể tự sinh 1 cái id
+////            //response sẽ trả data lại trong đó có cái link để redirect qua trang thanh toán của paypal
+////            //sau khi thanh toán xong thì paypal sẽ redirect lại trang return_url hoặc cancel_url
+////            //sau khi thanh toán trạng thái order trở thành approved
+////            //nếu không thanh toán thì trạng thái order trở thành voided?
+////            //nếu thanh toán mà không đủ tiền thì trạng thái order trở thành failed
+////            //Sử dụng id của order để lấy thông tin chi tiết của order và thực hiện capture, authorize
+////            //Có thể sử dụng capture id để thực hiện refund
+////
+////
+////            /*
+////            URL url = new URL("https://api-m.sandbox.paypal.com/v2/checkout/orders");
+////            HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
+////            httpConn.setRequestMethod("POST");
+////
+////            httpConn.setRequestProperty("Content-Type", "application/json");
+////            httpConn.setRequestProperty("PayPal-Request-Id", "7b92603e-77ed-4896-8e78-5dsea2050476ab");
+////            httpConn.setRequestProperty("Authorization", "Bearer A21AAJW3Xm9mxGB1gM5Vcw0U2b3LyQV9UfcMNWjLiZw6OQWADup9OBG3aNAFXdtXDrWxLeRbZgvzAejNCFZEn_OK4knQmdZaw");
+////
+////            httpConn.setDoOutput(true);
+////            OutputStreamWriter writer = new OutputStreamWriter(httpConn.getOutputStream());
+////            writer.write("{ \"intent\": \"AUTHORIZE\", \"purchase_units\": [ { \"reference_id\": " +
+////                    "\"d9f80740-38f0-11e8-b467-0ed5f89f718b\", \"amount\": { \"currency_code\": \"USD\", \"value\": \"1000.00\" }, \"shipping\": { \"address\": { \"address_line_1\": \"123 Main Street\", \"address_line_2\": \"Apt 101\", \"admin_area_1\": \"CA\", \"admin_area_2\": \"San Jose\", \"postal_code\": \"95131\", \"country_code\": \"US\" } } } ], \"payment_source\": { \"paypal\": { \"experience_context\": { \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\", \"brand_name\": \"EXAMPLE INC\", \"locale\": \"en-US\", \"landing_page\": \"LOGIN\", \"shipping_preference\": \"SET_PROVIDED_ADDRESS\", \"user_action\": \"PAY_NOW\", \"return_url\": \"https://example.com/returnUrl\", \"cancel_url\": \"https://example.com/cancelUrl\" } } } }");
+////            writer.flush();
+////            writer.close();
+////            httpConn.getOutputStream().close();
+////
+////            InputStream responseStream = httpConn.getResponseCode() / 100 == 2
+////                    ? httpConn.getInputStream()
+////                    : httpConn.getErrorStream();
+////            Scanner s = new Scanner(responseStream).useDelimiter("\\A");
+////            String response = s.hasNext() ? s.next() : "";
+////
+////            System.out.println(response);
+////
+////             */
 //        };
 //    }
 }

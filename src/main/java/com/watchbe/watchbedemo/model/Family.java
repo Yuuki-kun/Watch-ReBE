@@ -26,4 +26,8 @@ public class Family {
 //    @JsonManagedReference
     @JsonBackReference
     private List<Watch> watches;
+
+    @ManyToOne
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
 }

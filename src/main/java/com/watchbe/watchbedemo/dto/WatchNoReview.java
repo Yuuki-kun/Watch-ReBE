@@ -35,4 +35,5 @@ public class WatchNoReview {
     private CaseDto watchCase;
     private MovementDto movement;
     private List<ImageDto> images;
-}
+    private float discount;
+    private boolean active;}

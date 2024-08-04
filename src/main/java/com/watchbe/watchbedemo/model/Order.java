@@ -23,15 +23,18 @@ public class Order {
     private Long id;
 
     @Column(name = "order_date")
-    @OrderBy("order_date desc")
+//    @OrderBy("order_date desc")
     private Date orderDate;
 
     private double amount;
     private float tax;
     private float shipping;
 
-    private String stripePaymentId;
-    private String stripePaymentIntentId;
+    private String paymentOrderId;
+    private String paymentIntentId;
+
+    @Column(length = 1000)
+    private String paymentUrl;
 
     @ManyToOne
     @JoinColumn(name = "customer_id")
@@ -54,6 +57,8 @@ public class Order {
     @JoinColumn(name = "payment_id")
     private Payment payment;
 
+    private String receiptUrl;
+
     public void setOrderDetails(List<OrderDetails> orderDetails) {
         this.orderDetails = orderDetails;
         for (OrderDetails od: orderDetails) {
@@ -70,8 +75,8 @@ public class Order {
         od.setOrder(null);
     }
 
-    public  void setOrderStatus(OrderStatus orderStatus){
-        this.orderStatus = orderStatus;
-    orderStatus.getOrders().add(this);}
+//    public  void setOrderStatus(OrderStatus orderStatus){
+//        this.orderStatus = orderStatus;
+//    orderStatus.getOrders().add(this);}
 
 }

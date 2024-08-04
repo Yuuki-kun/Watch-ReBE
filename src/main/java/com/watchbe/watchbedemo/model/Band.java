@@ -20,14 +20,15 @@ public class Band {
     @Id
     @GeneratedValue
     private Long id;
-    private String reference;
-    private String material;
+    private String reference;//
+    private String material;//
     //type of single ring, NATO, butterfly
-    private String type;
+    private String type;//
     //loai chot khoa
     private String clasp;
     private float width;
-    private String color;
+    private String color;//
+    private float length;
 
     @OneToMany(mappedBy = "band", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

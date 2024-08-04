@@ -18,11 +18,11 @@ public class Dial {
     @GeneratedValue
     private Long id;
 
-    private String color;
-    private String indexes;
-    private String hands;
-    private String type;
-    private String subDials;
+    private String color; //
+    private String indexes;//
+    private String hands;//
+    //is it a chronograph watch?...
+    private String type;//
     private String luminescence;
     private String gemSetting;
     private String img;

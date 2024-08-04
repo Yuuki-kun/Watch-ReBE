@@ -1,12 +1,16 @@
 package com.watchbe.watchbedemo.model;
 
 public enum Status {
+    CREATED,
     PENDING,
-    UNCAPTURED,
-    CAPTURED,
-    SHIPPED,
+    PROCESSING,
+    CONFIRMED,
+    PREPARING,
+    SHIPPING,
     DELIVERED,
+    SHIPPED,
     CANCELLED,
     REFUNDED,
-    UNPAID
+    ON_HOLD,
+    REFUSED,
 }

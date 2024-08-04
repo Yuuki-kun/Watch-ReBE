@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -16,6 +18,9 @@ import java.util.List;
 public class CustomerDto {
     private Long id;
 
+    private String enabled;
+    private Date lastLogin;
+    private Date createdAt;
     private String firstName;
     private String lastName;
 

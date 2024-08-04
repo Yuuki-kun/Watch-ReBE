@@ -1,7 +1,7 @@
 package com.watchbe.watchbedemo.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.watchbe.watchbedemo.auth.email.EmailSender;
+//import com.watchbe.watchbedemo.auth.email.EmailSender;
 import com.watchbe.watchbedemo.config.JwtService;
 import com.watchbe.watchbedemo.exception.NotFoundException;
 import com.watchbe.watchbedemo.model.*;
@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,7 +47,7 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final TokenRepository tokenRepository;
     private final ConfirmationTokenRepository confirmationTokenRepository;
-    private final EmailSender emailSender;
+//    private final EmailSender emailSender;
     private final CartRepository cartRepository;
 
 
@@ -126,6 +127,7 @@ public class AuthenticationService {
                                                            RegisterRequest registerRequest,
                                                            HttpServletResponse response) {
         boolean accountExists = accountRepository.findByEmail(registerRequest.getEmail()).isPresent();
+        System.out.println("es"+registerRequest);
         System.out.println("regis email="+registerRequest.getEmail());
         System.out.println("accountExists="+accountExists);
         if(accountExists){
@@ -140,6 +142,7 @@ public class AuthenticationService {
                 .enabled(true)
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(registerRequest.getRole())
+                .createdAt(new Date())
                 .build();
         Customer savedCustomer = null;
         try{
@@ -232,8 +235,8 @@ public class AuthenticationService {
             tokenRepository.save(token);
             System.out.println("authenticate at: "+ LocalDateTime.now());
             //update account last login
-            LocalDateTime newLogin = LocalDateTime.now();
-            account.setLastLogin(newLogin);
+//            LocalDateTime newLogin = LocalDateTime.now();
+            account.setLastLogin(new Date());
             accountRepository.save(account);
 
             List<Integer> roleSPrivateValue = new ArrayList<>();
@@ -295,8 +298,8 @@ public class AuthenticationService {
             tokenRepository.save(token);
             System.out.println("authenticate at: "+ LocalDateTime.now());
             //update account last login
-            LocalDateTime newLogin = LocalDateTime.now();
-            account.setLastLogin(newLogin);
+//            LocalDateTime newLogin = LocalDateTime.now();
+            account.setLastLogin(new Date());
             accountRepository.save(account);
 
             List<Integer> roleSPrivateValue = new ArrayList<>();
@@ -453,7 +456,7 @@ public class AuthenticationService {
             confirmationTokenRepository.save(newConfirmationToken);
 
             String activeLink = "http://localhost:3000/active-account/" + confirmTokenGeneration;
-            emailSender.send(account.getEmail(), buildEmail(customer.getFirstName(), activeLink));
+//            emailSender.send(account.getEmail(), buildEmail(customer.getFirstName(), activeLink));
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(AuthenticationResponse.builder().email(account.getEmail()).message("Confirmation token expired. Please check your email again. You have three time left.").build());
         }
 

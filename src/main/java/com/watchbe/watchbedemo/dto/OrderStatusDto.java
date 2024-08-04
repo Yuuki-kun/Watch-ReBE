@@ -16,4 +16,7 @@ public class OrderStatusDto {
     private Long id;
 
     private Status status;
+
+    private String description;
+    private Integer code;
 }

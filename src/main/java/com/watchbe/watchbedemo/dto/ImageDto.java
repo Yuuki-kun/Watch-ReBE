@@ -11,4 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ImageDto {
     private String image;
+    private String name;
+    private boolean isMain;
 }

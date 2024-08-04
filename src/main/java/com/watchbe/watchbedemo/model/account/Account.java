@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -21,7 +22,8 @@ import java.util.List;
 @Table(name = "account")
 public class Account implements UserDetails {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "my_sequence")
+    @SequenceGenerator(name = "my_sequence", sequenceName = "my_sequence", allocationSize = 1)
     private Long id;
 
     @Column(unique = true)
@@ -31,7 +33,8 @@ public class Account implements UserDetails {
     private boolean locked=false;
     private boolean enabled=false;
 
-    private LocalDateTime lastLogin;
+    private Date lastLogin;
+    private Date createdAt;
 
     @Enumerated(EnumType.STRING)
     private Role role;

@@ -23,7 +23,12 @@ public class OrderStatus {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    @OneToMany(mappedBy = "orderStatus", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Order> orders = new ArrayList<>();
+    @Column(length = 1000)
+    private String description;
+
+    private Integer code;
+
+//    @OneToMany(mappedBy = "orderStatus", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Order> orders = new ArrayList<>();
 
 }

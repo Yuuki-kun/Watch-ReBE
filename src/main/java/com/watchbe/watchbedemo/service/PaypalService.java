@@ -1,9 +1,12 @@
 package com.watchbe.watchbedemo.service;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
+import com.stripe.exception.StripeException;
 import com.watchbe.watchbedemo.config.PaypalConfig;
 import com.watchbe.watchbedemo.model.Order;
+import com.watchbe.watchbedemo.model.OrderStatus;
+import com.watchbe.watchbedemo.model.OrderStatusHistory;
+import com.watchbe.watchbedemo.model.Status;
 import com.watchbe.watchbedemo.repository.*;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -14,12 +17,8 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Scanner;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,17 +37,183 @@ public class PaypalService extends CheckoutService {
                          CustomerRepository customerRepository, OrderStatusRepository orderStatusRepository,
                          PaymentRepository paymentRepository,
                          PaypalConfig paypalConfig,
-                         PaypalAccessTokenStore paypalAccessTokenStore
+                         PaypalAccessTokenStore paypalAccessTokenStore, WatchRepository watchRepository,
+                         ShippingRepository shippingRateRepository
     ) {
-        super(orderRepository, orderDetailsRepository, customerRepository, orderStatusRepository, paymentRepository);
+        super(orderRepository, orderDetailsRepository, customerRepository, orderStatusRepository, paymentRepository, watchRepository, shippingRateRepository);
         this.paypalConfig = paypalConfig;
         this.paypalAccessTokenStore = paypalAccessTokenStore;
     }
 
     @Override
     protected String createPaymentIntent(Order order) {
+        String accessToken = paypalAccessTokenStore.getAccessToken("access_token");
+        if(accessToken == null) {
+            System.out.println("token is expired");
+            accessToken = generateAccessToken();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("Authorization", "Bearer " + accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-        return "paypal";
+//        String requestBody = "{ \"intent\": \"CAPTURE\", \"purchase_units\": [ { \"reference_id\": \"d9f80740-38f0-11e8-b467-0ed5f89f718b\", \"amount\": { \"currency_code\": \"USD\", \"value\": \"100.00\" } } ], \"payment_source\": { \"paypal\": { \"experience_context\": { \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\", \"brand_name\": \"EXAMPLE INC\", \"locale\": \"en-US\", \"landing_page\": \"LOGIN\", \"shipping_preference\": \"SET_PROVIDED_ADDRESS\", \"user_action\": \"PAY_NOW\", \"return_url\": \"https://example.com/returnUrl\", \"cancel_url\": \"https://example.com/cancelUrl\" } } } }";
+
+        Gson gson = new Gson();
+
+// Tạo một đối tượng JsonObject và đưa dữ liệu vào đó
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("intent", "AUTHORIZE");
+
+// Tạo một mảng JsonObject cho purchase_units
+        JsonObject purchaseUnit = new JsonObject();
+//        purchaseUnit.addProperty("reference_id", "d9f80740-38f0-11e8-b467-0ed5f89af718b");
+
+        JsonObject amount = new JsonObject();
+        amount.addProperty("currency_code", "USD");
+        amount.addProperty("value", order.getAmount());
+        purchaseUnit.add("amount", amount);
+
+        JsonObject shipping = new JsonObject();
+        JsonObject address = new JsonObject();
+        address.addProperty("address_line_1", order.getAddress().getAddress());
+//        address.addProperty("address_line_2", "Apt 101");
+        address.addProperty("admin_area_1", order.getAddress().getCity());
+        address.addProperty("admin_area_2", order.getAddress().getDistrict());
+        address.addProperty("postal_code", "900000");
+        address.addProperty("country_code", "VN");
+        shipping.add("address", address);
+        purchaseUnit.add("shipping", shipping);
+
+// Tạo mảng purchase_units và thêm purchaseUnit vào đó
+        JsonArray purchaseUnitsArray = new JsonArray();
+        purchaseUnitsArray.add(purchaseUnit);
+
+// Đưa mảng purchase_units vào requestBody
+        requestBody.add("purchase_units", purchaseUnitsArray);
+
+// Tạo một đối tượng payment_source
+        JsonObject paymentSource = new JsonObject();
+        JsonObject paypal = new JsonObject();
+        JsonObject experienceContext = new JsonObject();
+        experienceContext.addProperty("payment_method_preference", "IMMEDIATE_PAYMENT_REQUIRED");
+        experienceContext.addProperty("brand_name", "EXAMPLE INC");
+        experienceContext.addProperty("locale", "en-US");
+        experienceContext.addProperty("landing_page", "LOGIN");
+        experienceContext.addProperty("shipping_preference", "SET_PROVIDED_ADDRESS");
+        experienceContext.addProperty("user_action", "PAY_NOW");
+        experienceContext.addProperty("return_url", "https://example.com/returnUrl");
+        experienceContext.addProperty("cancel_url", "https://example.com/cancelUrl");
+        paypal.add("experience_context", experienceContext);
+        paymentSource.add("paypal", paypal);
+
+// Đưa payment_source vào requestBody
+        requestBody.add("payment_source", paymentSource);
+
+
+        HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(
+                paypalConfig.getBaseURL()+"/v2/checkout/orders",
+                HttpMethod.POST,
+                entity,
+                String.class
+        );
+        if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED){
+            LOGGER.log(Level.INFO, "ORDER CAPTURE");
+            JsonObject jsonResponse = JsonParser.parseString(response.getBody()).getAsJsonObject();
+            String orderId =  jsonResponse.get("id").getAsString();
+            order.setPaymentOrderId(orderId);
+            orderRepository.save(order);
+            JsonArray linksArray = jsonResponse.getAsJsonArray("links");
+            System.out.println(jsonResponse);
+            String checkoutUrl = null;
+            for (JsonElement linkElement : linksArray) {
+                JsonObject linkObject = linkElement.getAsJsonObject();
+                if (linkObject.has("rel") && linkObject.get("rel").getAsString().equals("payer-action")) {
+                    checkoutUrl = linkObject.get("href").getAsString();
+                    break;
+                }
+            }
+
+            if (checkoutUrl != null) {
+                System.out.println("Checkout URL: " + checkoutUrl);
+
+                OrderStatus orderStatus = orderStatusRepository.findByStatus(Status.CREATED)
+                        .orElseThrow(() -> new RuntimeException("Order status not found"));
+                order.setOrderStatus(orderStatus);
+                orderRepository.save(order);
+                //change order status history
+                OrderStatusHistory orderStatusHistory = OrderStatusHistory.builder()
+                        .order(order)
+                        .orderStatus(orderStatus)
+                        .changeAt(new Date())
+                        .comments("Order created and waiting for customer action")
+                        .build();
+//                orderStatusHistoryRepository.save(orderStatusHistory);
+                return checkoutUrl;
+            } else {
+                System.out.println("Checkout URL not found!");
+                throw new RuntimeException("Checkout URL not found!");
+            }
+
+        } else {
+            LOGGER.log(Level.INFO, "FAILED CAPTURING ORDER");
+            return "Unavailable to get CAPTURE ORDER, STATUS CODE " + response.getStatusCode();
+        }
+    }
+
+    @Override
+    public void capturePayment(Long orderId)  {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        String accessToken = paypalAccessTokenStore.getAccessToken("access_token");
+        if(accessToken == null) {
+            System.out.println("token is expired");
+            accessToken = generateAccessToken();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("Authorization", "Bearer " + accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(
+                paypalConfig.getBaseURL()+"/v2/checkout/orders/"+order.getPaymentOrderId()+"/authorize",
+                HttpMethod.POST,
+                entity,
+                String.class
+        );
+        if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED){
+            LOGGER.log(Level.INFO, "ORDER CAPTURED");
+            JsonObject jsonResponse = JsonParser.parseString(response.getBody()).getAsJsonObject();
+            System.out.println(jsonResponse);
+
+            OrderStatus orderStatus = orderStatusRepository.findByStatus(Status.CONFIRMED)
+                    .orElseGet(() -> {
+                        OrderStatus newOrderStatus = OrderStatus.builder()
+                                .status(Status.CONFIRMED)
+                                .build();
+                        return orderStatusRepository.save(newOrderStatus);
+                    });
+
+            order.setOrderStatus(orderStatus); // Associate the Order with the OrderStatus
+            orderRepository.save(order); // Save the Order
+
+            //change order status history
+            OrderStatusHistory orderStatusHistory = OrderStatusHistory.builder()
+                    .order(order)
+                    .orderStatus(orderStatus)
+                    .changeAt(new Date())
+                    .comments("Order captured")
+                    .build();
+//            orderStatusHistoryRepository.save(orderStatusHistory);
+
+        } else {
+            LOGGER.log(Level.INFO, "FAILED CAPTURING ORDER");
+            System.out.println("FAILED CAPTURING ORDER");
+        }
     }
 
     public void checkOrder(String orderId) throws IOException {

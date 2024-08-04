@@ -14,10 +14,16 @@ import java.util.List;
 @AllArgsConstructor
 public class ReviewDto {
     private Long id;
+    private Long watchId;
+    private Long customerId;
     private String comment;
     private float ratingStars;
     private Date datePosted;
     private List<ReviewDto> childReviews;
     private CustomerDto customerDto;
     private long loves;
+    private Long parentId;
+    private Integer totalChildReviews;
+    private String wname;
+    private String wimage;
 }

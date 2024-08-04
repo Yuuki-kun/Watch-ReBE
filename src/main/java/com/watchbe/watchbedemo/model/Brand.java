@@ -26,4 +26,6 @@ public class Brand{
 //    @JsonManagedReference
     @JsonBackReference  //=> when to json -> this List won't serialize
     private List<Watch> watches;
+
+
 }

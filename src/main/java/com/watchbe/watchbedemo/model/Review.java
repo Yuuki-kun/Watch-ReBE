@@ -1,6 +1,7 @@
 package com.watchbe.watchbedemo.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -32,13 +33,16 @@ public class Review {
     //self relationship//
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    @JsonBackReference
+//    @JsonManagedReference
     private Review review;
 
-    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+//    @JsonBackReference
     private List<Review> childReviews = new ArrayList<>();
     //**self relationship**//
+
+    @Column(nullable = false, columnDefinition = "int default 0")
+    private int totalChildReviews;
 
     public void addChildReview(Review childReview){
         this.childReviews.add(childReview);
@@ -47,11 +51,11 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "watch_id")
-    @JsonBackReference
+//    @JsonBackReference
     private Watch watch;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
-    @JsonBackReference
+//    @JsonBackReference
     private Customer customer;
 }

@@ -18,7 +18,16 @@ public class Image {
     @GeneratedValue
     private Long id;
 
+    //link to the image
     private String image;
+
+    private String name;
+
+    private String type;
+
+    private String filePath;
+
+    private Boolean isMain;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "watch_id")

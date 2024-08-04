@@ -1,9 +1,6 @@
 package com.watchbe.watchbedemo.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,4 +23,18 @@ public class Payment {
     private Date date;
     private String type;
     private String paymentMethod;
+
+    private String brand;
+    private String cvcCheck;
+    private String country;
+    private String last4;
+    private String network;
+    private String paymentMethodType;
+    private String receiptEmail;
+    private Long expMonth;
+    private Long expYear;
+    private String fingerprint;
+    private String funding;
+    private Date captureBefore;
+    private String capturedAt;
 }

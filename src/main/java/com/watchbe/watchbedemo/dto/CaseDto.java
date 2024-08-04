@@ -19,7 +19,7 @@ public class CaseDto {
     private float thickness;
     private String shape;
     private float diameter;
-    private float lugWidth;
+//    private float lugWidth;
     private String crystal;
-    private String crystalDescription;
+//    private String crystalDescription;
 }

@@ -21,7 +21,8 @@ import java.util.List;
 @Table(name = "customer")
 public class Customer {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cus_sequence")
+    @SequenceGenerator(name = "cus_sequence", sequenceName = "cus_sequence", allocationSize = 1, initialValue = 0)
     private Long id;
 
     private String firstName;
@@ -34,12 +35,14 @@ public class Customer {
 
     private LocalDate dob;
 
+    @Column(columnDefinition = "unknown")
     private String gender;
     private String avatarLink;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "account_id")
     private Account account;
+
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "cart_id")

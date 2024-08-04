@@ -21,6 +21,9 @@ public class OrderDto {
 
     private Date orderDate;
 
+    private String paymentOrderId;
+    private String paymentIntentId;
+
     private double amount;
     private float tax;
     private float shipping;
@@ -28,4 +31,7 @@ public class OrderDto {
     private OrderStatusDto orderStatus;
     private ShippingAddressDto address;
     private PaymentDto payment;
+    private String paymentUrl;
+    private String receiptUrl;
+    List<OrderStatusHistoryDto> orderStatusHistory = new ArrayList<>();
 }

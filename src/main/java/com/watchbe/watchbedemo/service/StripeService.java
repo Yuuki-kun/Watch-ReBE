@@ -1,6 +1,7 @@
 package com.watchbe.watchbedemo.service;
 
 import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.watchbe.watchbedemo.model.*;
@@ -20,8 +21,13 @@ import java.util.stream.Collectors;
 //    private final OrderStatusRepository orderStatusRepository;
 //    private final PaymentRepository paymentRepository;
 public class StripeService extends CheckoutService{
-    public StripeService(OrderRepository orderRepository, OrderDetailsRepository orderDetailsRepository, CustomerRepository customerRepository, OrderStatusRepository orderStatusRepository, PaymentRepository paymentRepository) {
-        super(orderRepository, orderDetailsRepository, customerRepository, orderStatusRepository, paymentRepository);
+
+    public StripeService(OrderRepository orderRepository, OrderDetailsRepository orderDetailsRepository,
+                         CustomerRepository customerRepository, OrderStatusRepository orderStatusRepository,
+                         PaymentRepository paymentRepository, WatchRepository watchRepository, ShippingRepository shippingRateRepository
+){
+        super(orderRepository, orderDetailsRepository, customerRepository, orderStatusRepository, paymentRepository,
+                watchRepository,shippingRateRepository);
     }
 
 //    @Override
@@ -77,7 +83,7 @@ public class StripeService extends CheckoutService{
         SessionCreateParams params = new SessionCreateParams.Builder()
                 .addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD)
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl("https://localhost:3000/checkout/success")
+                .setSuccessUrl("http://localhost:3000/user-info/user-orders")
                 .setCancelUrl("https://localhost:3000/checkout/cancel")
                 .setCustomerEmail(order.getCustomer().getEmail())
 //                .setShippingAddressCollection(SessionCreateParams.ShippingAddressCollection.builder()
@@ -109,13 +115,58 @@ public class StripeService extends CheckoutService{
                 .build();
 
         Session session = Session.create(params);
-        OrderStatus orderStatus = OrderStatus.builder().status(Status.UNPAID).orders(new ArrayList<>()).build();
-        orderStatusRepository.save(orderStatus);
+        OrderStatus orderStatus = orderStatusRepository.findByStatus(Status.CREATED)
+                .orElseThrow(() -> new RuntimeException("Order status not found"));
         order.setOrderStatus(orderStatus);
-        order.setStripePaymentId(session.getId());
+        order.setPaymentOrderId(session.getId());
         orderRepository.save(order);
+
+        //change the order status history
+        OrderStatusHistory orderStatusHistory = OrderStatusHistory.builder()
+                .order(order)
+                .orderStatus(orderStatus)
+                .changeAt(new Date())
+                .comments("Order created and waiting for customer action.")
+                .build();
+//        orderStatusHistoryRepository.save(orderStatusHistory);
+
         return session.getUrl();
     }
+
+    @Override
+    public void capturePayment(Long orderId) throws StripeException {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        String stripePaymentIntentId = order.getPaymentIntentId();
+        PaymentIntent paymentIntent = PaymentIntent.retrieve(stripePaymentIntentId);
+        paymentIntent.capture();
+
+        // Retrieve the existing OrderStatus or create a new one if it doesn't exist
+        OrderStatus orderStatus = orderStatusRepository.findByStatus(Status.CONFIRMED)
+                .orElseGet(() -> {
+                    OrderStatus newOrderStatus = OrderStatus.builder()
+                            .status(Status.CONFIRMED)
+                            .build();
+                    return orderStatusRepository.save(newOrderStatus);
+                });
+        order.setOrderStatus(orderStatus); // Associate the Order with the OrderStatus
+        orderRepository.save(order); // Save the Order
+        order.getOrderDetails().forEach(or->{
+            Watch w = or.getWatch();
+            w.setInventoryQuantity(w.getInventoryQuantity()-or.getQuantity());
+            w.setSoldQuantity(w.getSoldQuantity()+or.getQuantity());
+            watchRepository.save(w);
+        });
+            OrderStatusHistory orderStatusHistory = OrderStatusHistory.builder()
+                .order(order)
+                .orderStatus(orderStatus)
+                .changeAt(new Date())
+                .comments("Order captured. Payment successful.")
+                .build();
+//        orderStatusHistoryRepository.save(orderStatusHistory);
+
+    }
+
 
     public SessionCreateParams.LineItem createLineItem(OrderDetails orderDetails) {
 //        return SessionCreateParams.LineItem.builder()
@@ -147,13 +198,14 @@ public class StripeService extends CheckoutService{
                 .setQuantity(orderDetails.getQuantity())
                 .setPriceData(
                         SessionCreateParams.LineItem.PriceData.builder()
-                                .setCurrency("usd")
+                                .setCurrency("vnd")
                                 .setUnitAmountDecimal(unitAmount) //
                                 // assuming the amount is in cents
                                 .setProductData(
                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                                 .setName(orderDetails.getWatch().getName())
-                                                .addImage(orderDetails.getWatch().getImages().get(0).getImage())
+//                                                .addImage(orderDetails.getWatch().getImages().get(0).getImage())
+
                                                 .build()
                                 )
                                 .build()

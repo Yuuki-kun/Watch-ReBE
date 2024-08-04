@@ -20,17 +20,17 @@ public class Case {
     @GeneratedValue
     private Long id;
 
-    private String material;
+    private String material; //
     //a ring surrounds
-    private String bezel;
-    private String waterResistance;
-    private String back;
-    private float thickness;
-    private String shape;
-    private float diameter;
-    private float lugWidth;
-    private String crystal;
-    private String crystalDescription;
+    private String bezel;//
+    private String waterResistance;//
+    private String back;//
+    private float thickness;//
+    private String shape;//
+    private float diameter;//
+    private float lugWidth;//
+    private String crystal;//
+    private String crystalDescription;//
 
 
 }

@@ -40,6 +40,14 @@ public class SecurityConfiguration {
                                 .requestMatchers("/api/v1/location/**").permitAll()
                                 .requestMatchers("/api/v1/provinces/**").permitAll()
                                 .requestMatchers("api/v1/checkout/**").permitAll()
+                                .requestMatchers("/api/v1/reviews/reviews/**").permitAll()
+                                .requestMatchers("/api/v1/reviews/total-reviews/**").permitAll()
+                                .requestMatchers("/image/**").permitAll()
+                                .requestMatchers(("/general-info/**")).permitAll()
+
+                                .requestMatchers("/api/v1/admin-watch-mgt/**").hasRole(ADMIN.name())
+                                .requestMatchers("/api/v1/admin-promotions-mgt/**").hasRole(ADMIN.name())
+
                                 .requestMatchers("/api/v1/demo-management/**").hasAnyRole(ADMIN.name(), MANAGER.name())
 
                                 .requestMatchers(GET, "/api/v1/demo-management/**").hasAnyAuthority(ADMIN_READ.name(), MANAGER_READ.name())
